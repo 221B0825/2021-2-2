@@ -5,9 +5,10 @@ public class CPU {
 		ePC,
 		eSP,
 		eAC,
+		eIR,
 		eStatus,
-		mar,
-		mbr
+		eMar,
+		embr
 	}
 	
 	private enum EOpCode {
@@ -20,17 +21,30 @@ public class CPU {
 		eBranch //just go to branch
 		
 	}
+	private class Register{
+		protected short value;
+		public short getValue() {
+			return this.value;
+		}
+		public void setValue(short value) {
+			this.value = value;
+		}
+	}
 	
-	class IR {
-		private EOpCode eOpCode;
-		private int operand;
+	class IR extends Register{
+		public short getOpcode() {
+			return (short)(this.value >> 8);
+		}
+		public short getOprand() {
+			return (short)(this.value & 0x00FF);
+		}
 	}
 	
 	private class ALU{
-		
+		//calculate Opcode
 	}
 	private class CU{
-		
+		//control the PC
 	}
 	
 	// components
