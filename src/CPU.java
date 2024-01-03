@@ -5,8 +5,8 @@ public class CPU {
 		ePC, eSP, eAC, eIR, eStatus, eMAR, eMBR
 	}
 
-	private enum EOpCode {
-		eHalt, eLDA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
+	private enum EOpCode { //AC Adddress IR Address
+		eHalt, eLDACC, eLDACA, eLDIRA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
 
 	}
 
@@ -96,33 +96,62 @@ public class CPU {
 	private void fetch() {
 		// PC --> MAR, MBR --> IR
 		this.registers[ERegister.eMAR.ordinal()].setValue(this.registers[ERegister.ePC.ordinal()].getValue());
-		this.memory.load(); // connect MAR & MBR
+		// memory --> MBR
+		this.load();
+		//MBR --> IR
 		this.registers[ERegister.eIR.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 	}
 
-	private void load() {
-		// IR.operand --> MAR MBR-->SP
-		this.registers[ERegister.eMAR.ordinal()]
-				.setValue((short) (((IR) this.registers[ERegister.eIR.ordinal()]).getOperand()
-						+ this.registers[ERegister.eSP.ordinal()].getValue()));
-
-		this.memory.load();
+	private void loadACC() {
+		short operand = (short)((IR) this.registers[ERegister.eIR.ordinal()]).getOperand();
+		this.registers[ERegister.eAC.ordinal()].setValue(operand);
+		
+	}
+	private void loadACA() {
+		short address = (short)((IR) this.registers[ERegister.eIR.ordinal()]).getOperand();
+		this.registers[ERegister.eMAR.ordinal()].setValue(address);
+		short data = this.memory.load(this.registers[ERegister.eMAR.ordinal()].getValue());
+		this.registers[ERegister.eMBR.ordinal()].setValue(data);
 		this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+	}
+	private void loadIRA() {
+		short address = this.registers[ERegister.ePC.ordinal()].getValue();
+		this.registers[ERegister.eMAR.ordinal()].setValue(address);
+		short data = this.memory.load(this.registers[ERegister.eMAR.ordinal()].getValue());
+		this.registers[ERegister.eMBR.ordinal()].setValue(data);
+		this.registers[ERegister.eIR.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+	}
+	
+	private void store() {
+		this.memory.store(this.registers[ERegister.eMAR.ordinal()].getValue(),this.registers[ERegister.eMBR.ordinal()].getValue());
+		
+	}
+	private void add() {
+		this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+		//this.load();
+		this.alu.add();
+		
 	}
 
 	private void execute() {
 		switch (EOpCode.values()[((IR) this.registers[ERegister.eIR.ordinal()]).getOpCode()]) {
 		case eHalt:
 			break;
-		case eLDA:
-			this.load();
+		case eLDACC:
+			this.loadACC();
+			break;
+		case eLDACA:
+			this.loadACA();
+			break;
+		case eLDIRA:
+			this.loadIRA();
 			break;
 		case eSTA:
+			this.store();
 			break;
 		case eAdd:
-			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
-			this.load();
-			this.alu.add();
+			this.add();
+			
 			break;
 		case eSub:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
@@ -132,7 +161,7 @@ public class CPU {
 		case eEQ: //A = B
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 			this.load();
-			this.alu.equal(); // save result to status
+			this.alu.equal(); //save result to status
 			break;
 		case eGT:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
@@ -149,6 +178,10 @@ public class CPU {
 		}
 
 	}
+
+
+
+
 
 	private void checkInterrupt() {
 

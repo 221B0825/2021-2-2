@@ -1,23 +1,18 @@
 
 public class Memory {
-	public class Process {
-		private short header[] = { 
-				0x001E,
-				0x0010,
-				0x0008
-		};
-		private short codeSegment[] = {
-				0x0003, //SetAC 3
-				0x0200 //STA A
-		};
-		private short dataSegment[] = {
-				0x0000,
-				0x0000
-		};
+	private short memory[] = new short[256];
+	
+	public short load(short mar) {
+		return this.memory[mar];
 	}
 
-	public void load() {
-
+	public void store(short mar, short mbr) {
+		this.memory[mar] = mbr;
 	}
-
+	
+	public void read(String fileName) {
+		//Read and put into memory
+		//Create early when CPU is running
+	}
 }
+
