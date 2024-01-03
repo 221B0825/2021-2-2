@@ -5,7 +5,7 @@ public class CPU {
 		ePC, eSP, eAC, eIR, eStatus, eMAR, eMBR
 	}
 
-	private enum EOpCode { //AC Adddress IR Address
+	private enum EOpCode { //AC Address IR Address
 		eHalt, eLDACC, eLDACA, eLDIRA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
 
 	}
@@ -97,7 +97,7 @@ public class CPU {
 		// PC --> MAR, MBR --> IR
 		this.registers[ERegister.eMAR.ordinal()].setValue(this.registers[ERegister.ePC.ordinal()].getValue());
 		// memory --> MBR
-		this.load();
+		//this.load();
 		//MBR --> IR
 		this.registers[ERegister.eIR.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 	}
@@ -155,17 +155,17 @@ public class CPU {
 			break;
 		case eSub:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
-			this.load();
+			//this.load();
 			this.alu.subtract();
 			break;
 		case eEQ: //A = B
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
-			this.load();
+			//this.load();
 			this.alu.equal(); //save result to status
 			break;
 		case eGT:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
-			this.load();
+			//this.load();
 			this.alu.greaterThan();
 			break;
 		case eBEq:
@@ -178,10 +178,6 @@ public class CPU {
 		}
 
 	}
-
-
-
-
 
 	private void checkInterrupt() {
 
@@ -199,6 +195,8 @@ public class CPU {
 		CPU cpu = new CPU();
 		Memory memory = new Memory();
 		cpu.associate(memory);
+		
+		memory.readExe("exe1");
 		cpu.setPowerOn();
 	}
 }
