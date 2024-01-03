@@ -1,3 +1,5 @@
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public class CPU {
 	// declaration
@@ -58,10 +60,11 @@ public class CPU {
 	// components
 	private CU cu;
 	private ALU alu;
-
 	private Register registers[];
+	
 	// associations
 	private Memory memory;
+	
 	// status
 	private boolean bPowerOn;
 
@@ -69,7 +72,7 @@ public class CPU {
 		return this.bPowerOn;
 	}
 
-	public void setPowerOn() {
+	public void setPowerOn() throws FileNotFoundException {
 		this.bPowerOn = true;
 		this.run();
 	}
@@ -83,16 +86,28 @@ public class CPU {
 		this.cu = new CU();
 		this.alu = new ALU();
 		this.registers = new Register[ERegisters.values().length];
+		for(int i=0; i<ERegisters.values().length;i++) {
+			if(i==ERegisters.eIR.ordinal()) {
+				this.registers[i] = new IR();
+			}
+			this.registers[i] = new Register();
+		}
 	}
 
 	public void associate(Memory memory) {
 		this.memory = memory;
 	}
 
-	private void fetch() {
-		// PC --> MAR(Memory Address Register)
+	private void fetch() throws FileNotFoundException {
+		// PC --> MAR
+	
+		// memory header setting
+		this.registers[ERegisters.ePC.ordinal()].setValue(this.memory.setPC());
+		this.registers[ERegisters.eSP.ordinal()].setValue(this.memory.setSP());
+		
 		this.registers[ERegisters.eMAR.ordinal()].setValue(this.registers[ERegisters.ePC.ordinal()].getValue());
-		this.memory.load(); // make connection MAR & MBR(Memory Buffer Register)
+		// connect MAR & MBR
+		this.memory.load(this.registers[ERegisters.eMAR.ordinal()].getValue());
 		this.registers[ERegisters.eIR.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
 	}
 
@@ -101,7 +116,7 @@ public class CPU {
 				.setValue((short) (((IR) this.registers[ERegisters.eIR.ordinal()]).getOperand()
 						+ this.registers[ERegisters.eSP.ordinal()].getValue()));
 
-		this.memory.load();
+		//this.memory.load();
 	}
 
 	private void execute() {
@@ -126,7 +141,7 @@ public class CPU {
 		case eEQ: //A = B
 			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
 			this.load();
-			this.alu.equal(); // save the result value to status
+			this.alu.equal(); // save result to status
 			break;
 		case eGT:
 			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
@@ -148,7 +163,7 @@ public class CPU {
 
 	}
 
-	public void run() {
+	public void run() throws FileNotFoundException {
 		while (this.isPowerOn()) {
 			this.fetch();
 			this.execute();
@@ -156,7 +171,7 @@ public class CPU {
 		}
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		CPU cpu = new CPU();
 		Memory memory = new Memory();
 		cpu.associate(memory);
