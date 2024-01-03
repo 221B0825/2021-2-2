@@ -1,101 +1,165 @@
 
 public class CPU {
 	// declaration
-	private enum ERegisters{
-		ePC,
-		eSP,
-		eAC,
-		eIR,
-		eStatus,
-		eMar,
-		embr
+	private enum ERegisters {
+		ePC, eSP, eAC, eIR, eStatus, eMAR, eMBR
 	}
-	
+
 	private enum EOpCode {
-		eHalt,
-		eLDA,
-		eADD,
-		eSub,
-		eBEq,//branch equal
-		eBGT,//branch grater than
-		eBranch //just go to branch
-		
+		eHalt, eLDA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
+
 	}
-	private class Register{
+
+	private class CU {
+		// control the PC
+	}
+
+	private class ALU {
+
+		public void add() {
+
+		}
+
+		public void subtract() {
+			
+		}
+
+		public void equal() {
+			
+		}
+
+		public void greaterThan() {
+			
+		}
+	}
+
+	private class Register {
 		protected short value;
+
 		public short getValue() {
 			return this.value;
 		}
+
 		public void setValue(short value) {
 			this.value = value;
 		}
 	}
-	
-	class IR extends Register{
-		public short getOpcode() {
-			return (short)(this.value >> 8);
+
+	class IR extends Register {
+		public short getOpCode() {
+			return (short) (this.value >> 8);
 		}
-		public short getOprand() {
-			return (short)(this.value & 0x00FF);
+
+		public short getOperand() {
+			return (short) (this.value & 0x00FF);
 		}
 	}
-	
-	private class ALU{
-		//calculate Opcode
-	}
-	private class CU{
-		//control the PC
-	}
-	
+
 	// components
-	private int registers[];
-	private IR ir;
-	private ALU alu;
 	private CU cu;
-	
+	private ALU alu;
+
+	private Register registers[];
+	// associations
+	private Memory memory;
 	// status
 	private boolean bPowerOn;
+
 	private boolean isPowerOn() {
 		return this.bPowerOn;
 	}
+
 	public void setPowerOn() {
 		this.bPowerOn = true;
 		this.run();
 	}
+
 	public void shutDown() {
 		this.bPowerOn = false;
 	}
-	
+
 	// constructor
 	public CPU() {
-		this.registers = new int[ERegisters.values().length];
-		this.alu = new ALU();
 		this.cu = new CU();
+		this.alu = new ALU();
+		this.registers = new Register[ERegisters.values().length];
 	}
-	private void fetch() {
 
-		
+	public void associate(Memory memory) {
+		this.memory = memory;
 	}
-	private void decode() {
-			
-		}
+
+	private void fetch() {
+		// PC --> MAR(Memory Address Register)
+		this.registers[ERegisters.eMAR.ordinal()].setValue(this.registers[ERegisters.ePC.ordinal()].getValue());
+		this.memory.load(); // make connection MAR & MBR(Memory Buffer Register)
+		this.registers[ERegisters.eIR.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
+	}
+
+	private void load() {
+		this.registers[ERegisters.eMAR.ordinal()]
+				.setValue((short) (((IR) this.registers[ERegisters.eIR.ordinal()]).getOperand()
+						+ this.registers[ERegisters.eSP.ordinal()].getValue()));
+
+		this.memory.load();
+	}
+
 	private void execute() {
-		switch(ir.getOpCode()) {
+		switch (EOpCode.values()[((IR) this.registers[ERegisters.eIR.ordinal()]).getOpCode()]) {
 		case eHalt:
 			break;
-			
+		case eLDA:
+			this.load();
+			break;
+		case eSTA:
+			break;
+		case eAdd:
+			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
+			this.load();
+			this.alu.add();
+			break;
+		case eSub:
+			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
+			this.load();
+			this.alu.subtract();
+			break;
+		case eEQ: //A = B
+			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
+			this.load();
+			this.alu.equal(); // save the result value to status
+			break;
+		case eGT:
+			this.registers[ERegisters.eAC.ordinal()].setValue(this.registers[ERegisters.eMBR.ordinal()].getValue());
+			this.load();
+			this.alu.greaterThan();
+			break;
+		case eBEq:
+			break;
+		case eBGT:
+			break;
+		case eBranch:
+			break;
+
 		}
+
 	}
+
 	private void checkInterrupt() {
-		
+
 	}
+
 	public void run() {
-		while(this.isPowerOn()) {
+		while (this.isPowerOn()) {
 			this.fetch();
-			this.decode();
 			this.execute();
 			this.checkInterrupt();
 		}
 	}
-	
+
+	public static void main(String[] args) {
+		CPU cpu = new CPU();
+		Memory memory = new Memory();
+		cpu.associate(memory);
+		cpu.setPowerOn();
+	}
 }
