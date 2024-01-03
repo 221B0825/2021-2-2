@@ -5,45 +5,31 @@ public class CPU {
 		ePC, eSP, eAC, eIR, eStatus, eMAR, eMBR
 	}
 
-	private enum EOpCode {
-		eHalt, eSETAC, eLDA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
+	private enum EOpCode { //AC Address IR Address
+		eHalt, eLDACC, eLDACA, eLDIRA, eSTA, eAdd, eSub, eEQ, eGT, eBEq, eBGT, eBranch
 
 	}
 
 	private class CU {
-		private Register[] registers;
-
-		public CU(Register[] registers) {
-			this.registers = registers;
-		}
-
-		public void control() {
-			this.registers[ERegister.ePC.ordinal()]
-					.setValue((short) (this.registers[ERegister.ePC.ordinal()].getValue() + 1));
-		}
+		// control the PC
 	}
 
 	private class ALU {
-		private Register[] registers;
-
-		public ALU(Register[] registers) {
-			this.registers = registers;
-		}
 
 		public void add() {
 
 		}
 
 		public void subtract() {
-
+			
 		}
 
 		public void equal() {
-
+			
 		}
 
 		public void greaterThan() {
-
+			
 		}
 	}
 
@@ -94,68 +80,89 @@ public class CPU {
 
 	// constructor
 	public CPU() {
+		this.cu = new CU();
+		this.alu = new ALU();
 		this.registers = new Register[ERegister.values().length];
-		for (ERegister eRegister : ERegister.values()) {
+		for(ERegister eRegister : ERegister.values()) {
 			this.registers[eRegister.ordinal()] = new Register();
 		}
 		this.registers[ERegister.eIR.ordinal()] = new IR();
-
-		this.cu = new CU(this.registers);
-		this.alu = new ALU(this.registers);
-
-		// now SP value is 0 ...
-		// this.registers[ERegister.eSP.ordinal()].setValue((short) 8);
 	}
 
 	public void associate(Memory memory) {
 		this.memory = memory;
 	}
 
-	// ---------------------------------- run ----------------------------------
 	private void fetch() {
-		// PC --> MAR MBR --> IR
-		System.out.println("PC: "+this.registers[ERegister.ePC.ordinal()].getValue());
+		// PC --> MAR, MBR --> IR
 		this.registers[ERegister.eMAR.ordinal()].setValue(this.registers[ERegister.ePC.ordinal()].getValue());
-
-		this.registers[ERegister.eMBR.ordinal()]
-				.setValue(this.memory.load(this.registers[ERegister.eMAR.ordinal()].getValue()));
-		System.out.println("MBR: "+this.registers[ERegister.eMBR.ordinal()].getValue());
-
+		// memory --> MBR
+		this.load();
+		//MBR --> IR
 		this.registers[ERegister.eIR.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 	}
 
-	// -------------------------------------------------------------------------
+	private void loadACC() { // Constant load into AC
+		short operand = (short)((IR) this.registers[ERegister.eIR.ordinal()]).getOperand();
+		this.registers[ERegister.eAC.ordinal()].setValue(operand);
+		
+	}
+	private void loadACA() { // Address load into AC
+		// IR --> MAR(address) --> Memory -> MBR(data) --> AC
+		short address = (short)((IR) this.registers[ERegister.eIR.ordinal()]).getOperand();
+		this.registers[ERegister.eMAR.ordinal()].setValue(address);
+		short data = this.memory.load(this.registers[ERegister.eMAR.ordinal()].getValue());
+		this.registers[ERegister.eMBR.ordinal()].setValue(data);
+		this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+	}
+	private void loadIRA() { // Address load into IR
+		// PC --> MAR(address) --> Memory --> MBR(data) --> IR 
+		short address = this.registers[ERegister.ePC.ordinal()].getValue();
+		this.registers[ERegister.eMAR.ordinal()].setValue(address);
+		short data = this.memory.load(this.registers[ERegister.eMAR.ordinal()].getValue());
+		this.registers[ERegister.eMBR.ordinal()].setValue(data);
+		this.registers[ERegister.eIR.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+	}
+	
+	private void store() {
+		this.memory.store(this.registers[ERegister.eMAR.ordinal()].getValue(),this.registers[ERegister.eMBR.ordinal()].getValue());
+		
+	}
+	private void add() {
+		this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+		//this.load();
+		this.alu.add();
+		
+	}
+
 	private void execute() {
 		switch (EOpCode.values()[((IR) this.registers[ERegister.eIR.ordinal()]).getOpCode()]) {
 		case eHalt:
 			break;
-		case eSETAC:
-			// Store the operand value of the current IR (the value to be placed in the AC, not the address) in the AC
-			this.registers[ERegister.eAC.ordinal()]
-					.setValue(((IR) this.registers[ERegister.eIR.ordinal()]).getOperand());
+		case eLDACC:
+			this.loadACC();
 			break;
-		case eLDA:
-			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
+		case eLDACA:
+			this.loadACA();
 			break;
-		case eSTA: // (x) <-- AC
-			this.load();
-			this.memory.store(this.registers[ERegister.eMBR.ordinal()].getValue(),
-					this.registers[ERegister.eAC.ordinal()].getValue());
+		case eLDIRA:
+			this.loadIRA();
+			break;
+		case eSTA:
+			this.store();
 			break;
 		case eAdd:
-			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
-			this.load();
-			this.alu.add();
+			this.add();
 			break;
 		case eSub:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 			this.load();
 			this.alu.subtract();
 			break;
-		case eEQ: // A = B
+		case eEQ: //A = B
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
 			this.load();
-			this.alu.equal(); // save result to status
+			this.alu.equal(); //save result to status
 			break;
 		case eGT:
 			this.registers[ERegister.eAC.ordinal()].setValue(this.registers[ERegister.eMBR.ordinal()].getValue());
@@ -168,29 +175,15 @@ public class CPU {
 			break;
 		case eBranch:
 			break;
+
 		}
+
 	}
 
-	private void load() {
-		// IR.operand + SP --> MAR MBR
-//		this.registers[ERegister.eMAR.ordinal()]
-//				.setValue((short) (((IR) this.registers[ERegister.eIR.ordinal()]).getOperand()
-//						+ this.registers[ERegister.eSP.ordinal()].getValue()));
-		
-		this.registers[ERegister.eMAR.ordinal()]
-				.setValue((short) (((IR) this.registers[ERegister.eIR.ordinal()]).getOperand()));
-		
-		this.registers[ERegister.eMBR.ordinal()]
-				.setValue(this.memory.decode(this.registers[ERegister.eMAR.ordinal()].getValue()));
-		
-	}
-
-	// -------------------------------------------------------------------------
 	private void checkInterrupt() {
-		this.cu.control();
+
 	}
 
-	// ---------------------------------- run ----------------------------------
 	public void run() {
 		while (this.isPowerOn()) {
 			this.fetch();
